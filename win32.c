@@ -152,6 +152,7 @@ static void __InitializeDirectsound(win32_setup *Setup)
     {
         __FatalError("SetCooperativeLevel failed");
     }
+
     DSBUFFERDESC BufferDesc = { 0 };
     BufferDesc.dwSize = sizeof BufferDesc;
     BufferDesc.dwFlags = DSBCAPS_PRIMARYBUFFER;
@@ -169,14 +170,13 @@ static void __InitializeDirectsound(win32_setup *Setup)
     Format.wBitsPerSample = 16;
     Format.nBlockAlign = Format.nChannels*Format.wBitsPerSample/8;
     Format.nAvgBytesPerSec = Format.nSamplesPerSec*Format.nBlockAlign;
-    Format.cbSize = 0;
 
     if (FAILED(PrimaryBuffer->lpVtbl->SetFormat(PrimaryBuffer, &Format)))
     {
         __FatalError("SetFormat failed");
     }
 
-    DSBUFFERDESC PlaybackBufferDesc = { 0 };
+    static DSBUFFERDESC PlaybackBufferDesc = { 0 };
     PlaybackBufferDesc.dwSize = sizeof PlaybackBufferDesc;
     PlaybackBufferDesc.dwBufferBytes = BufferSize;
     PlaybackBufferDesc.lpwfxFormat = &Format;
@@ -208,7 +208,7 @@ int WinMainCRTStartup()
     HWND Window = CreateWindowA(
         WindowClass.lpszClassName,    
         SetupInfo.Title,
-        WS_OVERLAPPEDWINDOW,          
+        WS_OVERLAPPEDWINDOW | WS_VISIBLE,          
         CW_USEDEFAULT, CW_USEDEFAULT,
         SetupInfo.Width, SetupInfo.Height,
         NULL,                        
@@ -217,18 +217,13 @@ int WinMainCRTStartup()
         NULL                      
     );
 
-    ShowWindow(Window, TRUE);
-
     SetTimer(Window, __FrameTimer, 16, NULL);
 
-    win32_setup Setup = { 0 };
-    Setup.Window = Window;
-    __InitializeDirectsound(&Setup);
-    Setup.SecondaryBuffer->lpVtbl->Play(Setup.SecondaryBuffer, 0, 0, DSBPLAY_LOOPING);
+    GLB_Setup.Window = Window;
+    __InitializeDirectsound(&GLB_Setup);
+    GLB_Setup.SecondaryBuffer->lpVtbl->Play(GLB_Setup.SecondaryBuffer, 0, 0, DSBPLAY_LOOPING);
 
-    GLB_Setup = Setup;
-
-    MSG Msg = { 0 };
+    static MSG Msg = { 0 };
     while (GetMessageA(&Msg, NULL, 0, 0))
     {
         TranslateMessage(&Msg); 
