@@ -2,7 +2,7 @@
 
 Sets up a basic Win32 application, with a framebuffer and audio.
 
-Poke around in main.c to get started. The demo in the repository takes up `1134 bytes` of space.
+Poke around in main.c to get started. The demo in the repository takes up `1496 bytes` of space.
 
 ![Demo screenshot](https://ske.land/r/boxesese.3ay.png)
 
@@ -15,6 +15,12 @@ You need to have:
 Run `build.bat` in Visual Studio Developer Command Prompt for ***32 BIT***.
 
 Yes, it means you can't use 64-bit, but if you're aiming for a small demo 64 bit isn't a very good choice anyway.
+
+> [!WARNING]
+> There is no C standard library, so you can't use `printf` or `malloc` or anything like that. 
+
+> [!TIP]
+> Use `VirtualAlloc` and `VirtualFree` to allocate and free memory.
 
 ## Usage
 
@@ -30,9 +36,9 @@ win32_setup_info CallbackSetup()
 }
 ```
 
-`CallbackFrame(DWORD32 *FrameBuffer, int Width, int Height)` to draw to the framebuffer (32-bit ARGB). For example:
+`CallbackFrame(win32_setup *Setup, DWORD32 *FrameBuffer, int Width, int Height)` to draw to the framebuffer (32-bit ARGB). For example:
 ```c
-void CallbackFrame(DWORD32 *FrameBuffer, int Width, int Height)
+void CallbackFrame(win32_setup *Setup, DWORD32 *FrameBuffer, int Width, int Height)
 {
     for (int i = 0; i < Height; i++)
     {
@@ -61,9 +67,9 @@ LRESULT CallbackEvent(win32_setup *Setup, HWND Window, UINT Msg, WPARAM wParam, 
 > [!TIP]
 > Look [here](https://www.autoitscript.com/autoit3/docs/appendix/WinMsgCodes.htm) for list of messages. 
 
-`CallbackGetSample()` to get a sample for the audio callback. For example:
+`CallbackGetSample(win32_setup *Setup)` to get a sample for the audio callback. It's called at a rate of 44100 Hz. For example:
 ```c
-audio_sample CallbackGetSample()
+audio_sample CallbackGetSample(win32_setup *Setup)
 {
     // Plays a square wave
     static int LastPosition = 0;
@@ -74,10 +80,19 @@ audio_sample CallbackGetSample()
 }
 ```
 
-`CallbackTeardown()` to tear down your game state. For example:
+`CallbackTeardown(win32_setup *Setup)` to tear down your game state. For example:
 ```c
-void CallbackTeardown()
+void CallbackTeardown(win32_setup *Setup)
 {
     // Free any resources you allocated, close any files you opened, etc.
 }
 ```
+
+## Tips
+
+Feel free to edit `win32.c`, it's a reference implementation. Add DirectX or OpenGL or whatever you want.
+
+Maybe you want to put sources into the `src/` directory, you can change `build.bat` to handle that.
+
+`win32_setup` is passed to all callbacks, you can access the guts of the setup there.
+

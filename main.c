@@ -17,7 +17,7 @@ win32_setup_info CallbackSetup()
     return Setup;
 }
 
-void CallbackFrame(DWORD32 *FrameBuffer, int Width, int Height)
+void CallbackFrame(win32_setup *Setup, DWORD32 *FrameBuffer, int Width, int Height)
 {
     for (int i = 0; i < Height; i++)
     {
@@ -42,7 +42,7 @@ LRESULT CallbackEvent(win32_setup *Setup, HWND Window, UINT Msg, WPARAM wParam, 
 }
 
 // Samples served at a rate of 44100 Hz
-audio_sample CallbackGetSample()
+audio_sample CallbackGetSample(win32_setup *Setup)
 {
     // Plays a square wave
     static int LastPosition = 0;
@@ -51,7 +51,7 @@ audio_sample CallbackGetSample()
     return (audio_sample){ SampleValue, SampleValue };
 }
 
-void CallbackTeardown()
+void CallbackTeardown(win32_setup *Setup)
 {
     // TODO!
 }

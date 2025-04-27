@@ -9,7 +9,7 @@ if not exist bin mkdir bin
 
 echo ^>Bob the builder, can we build it?
 
-cl main.c /O1 /c /GS- || exit /b
+cl main.c /O2 /c /GS- || exit /b
 %CRINKLER_EXE% main.obj user32.lib kernel32.lib gdi32.lib dsound.lib /SUBSYSTEM:WINDOWS /NODEFAULTLIB /out:bin\demo.exe || exit /b
 
 del *.obj

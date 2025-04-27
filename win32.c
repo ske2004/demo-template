@@ -24,9 +24,9 @@ typedef struct {
 
 win32_setup_info CallbackSetup();
 LRESULT CallbackEvent(win32_setup *Setup, HWND Window, UINT Msg, WPARAM wParam, LPARAM lParam);
-void CallbackFrame(DWORD32 *FrameBuffer, int Width, int Height);
-audio_sample CallbackGetSample();
-void CallbackTeardown();
+void CallbackFrame(win32_setup *Setup, DWORD32 *FrameBuffer, int Width, int Height);
+audio_sample CallbackGetSample(win32_setup *Setup);
+void CallbackTeardown(win32_setup *Setup);
 
 static win32_setup GLB_Setup;
 
@@ -40,7 +40,7 @@ static void __BlitToWindow(HWND Window)
 
     DWORD32 *Buffer = VirtualAlloc(NULL, Width*Height*4, MEM_COMMIT, PAGE_READWRITE);
 
-    CallbackFrame(Buffer, Width, Height);
+    CallbackFrame(&GLB_Setup, Buffer, Width, Height);
 
     HDC DC = GetDC(Window);
     BITMAPINFOHEADER BmpInfo = { 0 };
@@ -82,13 +82,13 @@ static void __UpdateAudio()
         {
             for (int i = 0; i < Bytes1/Setup->BytesPerSample; i++)
             {
-                audio_sample Sample = CallbackGetSample();
+                audio_sample Sample = CallbackGetSample(Setup);
                 ((audio_sample*)Region1)[i] = Sample;
                 Setup->SampleIndex++;
             }
             for (int i = 0; i < Bytes2/Setup->BytesPerSample; i++)
             {
-                audio_sample Sample = CallbackGetSample();
+                audio_sample Sample = CallbackGetSample(Setup);
                 ((audio_sample*)Region2)[i] = Sample;
                 Setup->SampleIndex++;
             }
@@ -97,7 +97,7 @@ static void __UpdateAudio()
     }
 }
 
-void DoFrame(HWND hwnd)
+static void __DoFrame(HWND hwnd)
 {
     __UpdateAudio();
     __BlitToWindow(hwnd);
@@ -116,14 +116,14 @@ static LRESULT CALLBACK __WndProc(
     case WM_TIMER:
         if (wParam == __FrameTimer)
         {
-            DoFrame(hWnd);
+            __DoFrame(hWnd);
         }
         break;
     case WM_CLOSE:
         DestroyWindow(hWnd);
         break;
     case WM_DESTROY: 
-        CallbackTeardown();
+        CallbackTeardown(&GLB_Setup);
         PostQuitMessage(0);
         break;
     }
@@ -131,13 +131,13 @@ static LRESULT CALLBACK __WndProc(
     return CallbackEvent(&GLB_Setup, hWnd, Msg, wParam, lParam);
 }
 
-void __FatalError(const char *Message)
+static void __FatalError(const char *Message)
 {
     MessageBoxA(NULL, Message, "Fatal Error", MB_OK);
     ExitProcess(1);
 }
 
-void __InitializeDirectsound(win32_setup *Setup)
+static void __InitializeDirectsound(win32_setup *Setup)
 {
     const int HzRate = 44100;
     const int BufferSize = HzRate*2*2*2;
@@ -225,8 +225,6 @@ int WinMainCRTStartup()
     Setup.Window = Window;
     __InitializeDirectsound(&Setup);
     Setup.SecondaryBuffer->lpVtbl->Play(Setup.SecondaryBuffer, 0, 0, DSBPLAY_LOOPING);
-
-    CallbackSetup();
 
     GLB_Setup = Setup;
 
