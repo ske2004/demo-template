@@ -10,7 +10,7 @@ Poke around in main.c to get started. The demo in the repository takes up `1134 
 
 You need to have:
  - [msvc](https://visualstudio.microsoft.com/visual-cpp-build-tools/)
- - [crinkler](https://github.com/jsdf/crinkler)
+ - [crinkler](https://github.com/runestubbe/Crinkler)
 
 Run `build.bat` in Visual Studio Developer Command Prompt for ***32 BIT***.
 
