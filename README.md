@@ -1,5 +1,7 @@
 # Demo Starter for Win32
 
+Sets up a basic Win32 application, with a framebuffer and audio.
+
 Poke around in main.c to get started. The demo in the repository takes up `1134 bytes` of space.
 
 ![Demo screenshot](https://ske.land/r/boxesese.3ay.png)
