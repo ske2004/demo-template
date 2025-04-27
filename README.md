@@ -63,6 +63,7 @@ audio_sample CallbackGetSample()
     static int LastPosition = 0;
     int SampleValue = ((LastPosition/100%2) == 0 ? 32767 : -32767)/2;
     LastPosition++;
+    // You can specify left and right sample values independently
     return (audio_sample){ SampleValue, SampleValue };
 }
 ```
