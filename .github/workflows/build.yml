@@ -1,0 +1,33 @@
+name: Build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup MSVC
+      uses: ilammy/msvc-dev-cmd@v1
+      with:
+        arch: x86
+      
+    - name: Download Crinkler
+      run: |
+        curl -L -o crinkler.zip https://github.com/runestubbe/Crinkler/releases/download/v2.3/crinkler23.zip
+        7z x crinkler.zip -o"C:\crinkler"
+        
+    - name: Build
+      run: .\build.bat
+      
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: demo
+        path: bin/demo.exe 
