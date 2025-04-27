@@ -1,5 +1,9 @@
 # Demo Starter for Win32
 
+Poke around in main.c to get started. The demo in the repository takes up `1134 bytes` of space.
+
+![Demo screenshot](https://ske.land/r/boxesese.3ay.png)
+
 ## Building
 
 You need to have:
