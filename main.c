@@ -2,6 +2,7 @@
 
 typedef struct
 {
+    int P;
     int X;
 } game_state;
 
@@ -14,6 +15,9 @@ win32_setup_info CallbackSetup()
     Setup.Title = "Unnamed";
     Setup.Width = 800;
     Setup.Height = 600;
+    
+    GameState.P = 100;
+
     return Setup;
 }
 
@@ -35,25 +39,40 @@ LRESULT CallbackEvent(win32_setup *Setup, HWND Window, UINT Msg, WPARAM wParam, 
     case WM_KEYDOWN:
         if (wParam == VK_LEFT) GameState.X--;
         if (wParam == VK_RIGHT) GameState.X++;
+        if (wParam == VK_DOWN) GameState.P++;
+        if (wParam == VK_UP) GameState.P--;
         break;
     }
+
+    if (GameState.P < 20) GameState.P = 20;
+    if (GameState.P > 1000) GameState.P = 1000;
 
     return DefWindowProcA(Window, Msg, wParam, lParam);
 }
 
 // Samples served at a rate of 44100 Hz
+// Warning: This runs on a different thread, expect race conditions!
 audio_sample CallbackGetSample(win32_setup *Setup)
 {
     // Plays a square wave
-    static int LastPosition = 0;
-    int SampleValue = ((LastPosition/100%2) == 0 ? 32767 : -32767)/2;
-    LastPosition++;
+    static int Cycle = 0;
+    static int Timer = 0;
+
+    if (Timer > GameState.P)
+    {
+        Cycle = !Cycle;
+        Timer = 0;
+    }
+
+    Timer++;
+
+    int SampleValue = (Cycle == 0 ? 32767 : -32767)/16;
     return (audio_sample){ SampleValue, SampleValue };
 }
 
 void CallbackTeardown(win32_setup *Setup)
 {
-    // TODO!
+    // Free any resources you allocated, close any files you opened, save any data, etc.
 }
 
 

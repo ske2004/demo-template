@@ -56,11 +56,17 @@ LRESULT CallbackEvent(win32_setup *Setup, HWND Window, UINT Msg, WPARAM wParam, 
 {
     switch (Msg)
     {
-        case WM_KEYDOWN:
-            if (wParam == VK_LEFT) GameState.X--;   
-            if (wParam == VK_RIGHT) GameState.X++;
-            break;
+    case WM_KEYDOWN:
+        if (wParam == VK_LEFT) GameState.X--;
+        if (wParam == VK_RIGHT) GameState.X++;
+        if (wParam == VK_DOWN) GameState.P++;
+        if (wParam == VK_UP) GameState.P--;
+        break;
     }
+
+    if (GameState.P < 20) GameState.P = 20;
+    if (GameState.P > 1000) GameState.P = 1000;
+
     return DefWindowProcA(Window, Msg, wParam, lParam);
 }
 ``` 
@@ -69,22 +75,34 @@ LRESULT CallbackEvent(win32_setup *Setup, HWND Window, UINT Msg, WPARAM wParam, 
 
 `CallbackGetSample(win32_setup *Setup)` to get a sample for the audio callback. It's called at a rate of 44100 Hz. For example:
 ```c
+// Samples served at a rate of 44100 Hz
+// Warning: This runs on a different thread, expect race conditions!
 audio_sample CallbackGetSample(win32_setup *Setup)
 {
     // Plays a square wave
-    static int LastPosition = 0;
-    int SampleValue = ((LastPosition/100%2) == 0 ? 32767 : -32767)/2;
-    LastPosition++;
-    // You can specify left and right sample values independently
+    static int Cycle = 0;
+    static int Timer = 0;
+
+    if (Timer > GameState.P)
+    {
+        Cycle = !Cycle;
+        Timer = 0;
+    }
+
+    Timer++;
+
+    int SampleValue = (Cycle == 0 ? 32767 : -32767)/16;
     return (audio_sample){ SampleValue, SampleValue };
 }
 ```
+> [!WARNING]
+> This callback runs on a different thread, you need to use mutexes, semaphores, critical sections e.t.c. to avoid race conditions. 
 
-`CallbackTeardown(win32_setup *Setup)` to tear down your game state. For example:
+`CallbackTeardown(win32_setup *Setup)` to destroy your game state. For example:
 ```c
 void CallbackTeardown(win32_setup *Setup)
 {
-    // Free any resources you allocated, close any files you opened, etc.
+    // Free any resources you allocated, close any files you opened, save any data, etc.
 }
 ```
 

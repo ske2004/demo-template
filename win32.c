@@ -2,13 +2,20 @@
 #include <dsound.h>
 
 typedef struct {
-    HWND Window;
-
-    // Directsound
     IDirectSoundBuffer *SecondaryBuffer;
+    HANDLE Thread;
+
     DWORD BytesPerSample;
-    DWORD BufferSize;
-    DWORD SampleIndex;
+
+    DWORD BufferSize_Samples;
+    DWORD Index_Samples;
+    DWORD Ahead_Samples;
+} win32_audio;
+
+typedef struct {
+    HWND Window;
+    win32_audio Audio;
+    UINT_PTR FrameTimer;
 } win32_setup;
 
 typedef struct {
@@ -57,53 +64,78 @@ static void __BlitToWindow(HWND Window)
     VirtualFree(Buffer, 0, MEM_RELEASE);
 }
 
-static void __UpdateAudio()
+static void __AdvanceCursor(win32_audio *Audio)
 {
-    win32_setup *Setup = &GLB_Setup;
-
-    DWORD PlayCursor, WriteCursor;
-    if (SUCCEEDED(Setup->SecondaryBuffer->lpVtbl->GetCurrentPosition(Setup->SecondaryBuffer, &PlayCursor, &WriteCursor)))
+    Audio->Index_Samples++;
+    if (Audio->Index_Samples >= Audio->BufferSize_Samples)
     {
-        DWORD Cursor = Setup->SampleIndex * Setup->BytesPerSample % Setup->BufferSize;
-        DWORD BytesToWrite;
-        if (PlayCursor < WriteCursor)
+        Audio->Index_Samples = 0;
+    }
+}
+
+static void __FillBuffer(win32_setup *Setup, DWORD SamplesToWrite)
+{
+    win32_audio *Audio = &Setup->Audio;
+    
+    DWORD Cursor_Bytes = Audio->Index_Samples * Audio->BytesPerSample;
+    DWORD Write_Bytes = SamplesToWrite * Audio->BytesPerSample;
+
+    void *Region1, *Region2;
+    DWORD Bytes1, Bytes2;
+    if (SUCCEEDED(Audio->SecondaryBuffer->lpVtbl->Lock(Audio->SecondaryBuffer, Cursor_Bytes, Write_Bytes, &Region1, &Bytes1, &Region2, &Bytes2, 0)))
+    {
+        for (int i = 0; i < Bytes1/Audio->BytesPerSample; i++)
         {
-            BytesToWrite = Setup->BufferSize - Cursor;
-            BytesToWrite += PlayCursor;
+            audio_sample Sample = CallbackGetSample(Setup);
+            ((audio_sample*)Region1)[i] = Sample;
+            __AdvanceCursor(Audio);
         }
-        else
+        for (int i = 0; i < Bytes2/Audio->BytesPerSample; i++)
         {
-            BytesToWrite = PlayCursor - Cursor;
+            audio_sample Sample = CallbackGetSample(Setup);
+            ((audio_sample*)Region2)[i] = Sample;
+            __AdvanceCursor(Audio);
+        }
+        Audio->SecondaryBuffer->lpVtbl->Unlock(Audio->SecondaryBuffer, Region1, Bytes1, Region2, Bytes2);
+    }
+}
+
+static DWORD WINAPI __AudioThread(LPVOID Param)
+{
+    win32_setup *Setup = (win32_setup*)Param;
+    win32_audio *Audio = &Setup->Audio;
+    
+    while (1)
+    {
+        DWORD _PlayCursor, _WriteCursor;
+        if (SUCCEEDED(Audio->SecondaryBuffer->lpVtbl->GetCurrentPosition(Audio->SecondaryBuffer, &_PlayCursor, &_WriteCursor)))
+        {
+            DWORD PlayCursor = _PlayCursor/Audio->BytesPerSample;
+            DWORD WriteCursor = (Audio->Index_Samples % Audio->BufferSize_Samples);
+            DWORD TargetCursor = (PlayCursor + Audio->Ahead_Samples) % Audio->BufferSize_Samples;
+            DWORD SamplesToWrite = 0;
+            if (TargetCursor < WriteCursor)
+            {
+                SamplesToWrite = (Audio->BufferSize_Samples - WriteCursor) + TargetCursor;
+            }
+            else
+            {
+                SamplesToWrite = TargetCursor - WriteCursor;
+            }
+
+            __FillBuffer(Setup, SamplesToWrite);
         }
 
-        void *Region1, *Region2;
-        DWORD Bytes1, Bytes2;
-        if (SUCCEEDED(Setup->SecondaryBuffer->lpVtbl->Lock(Setup->SecondaryBuffer, Cursor, BytesToWrite, &Region1, &Bytes1, &Region2, &Bytes2, 0)))
-        {
-            for (int i = 0; i < Bytes1/Setup->BytesPerSample; i++)
-            {
-                audio_sample Sample = CallbackGetSample(Setup);
-                ((audio_sample*)Region1)[i] = Sample;
-                Setup->SampleIndex++;
-            }
-            for (int i = 0; i < Bytes2/Setup->BytesPerSample; i++)
-            {
-                audio_sample Sample = CallbackGetSample(Setup);
-                ((audio_sample*)Region2)[i] = Sample;
-                Setup->SampleIndex++;
-            }
-            Setup->SecondaryBuffer->lpVtbl->Unlock(Setup->SecondaryBuffer, Region1, Bytes1, Region2, Bytes2);
-        }
+        Sleep(5);
     }
+    
+    return 0;
 }
 
 static void __DoFrame(HWND hwnd)
 {
-    __UpdateAudio();
     __BlitToWindow(hwnd);
 }
-
-static UINT_PTR __FrameTimer = 1;
 
 static LRESULT CALLBACK __WndProc(
     HWND   hWnd,
@@ -114,7 +146,7 @@ static LRESULT CALLBACK __WndProc(
 {
     switch (Msg) {
     case WM_TIMER:
-        if (wParam == __FrameTimer)
+        if (wParam == GLB_Setup.FrameTimer)
         {
             __DoFrame(hWnd);
         }
@@ -123,6 +155,7 @@ static LRESULT CALLBACK __WndProc(
         DestroyWindow(hWnd);
         break;
     case WM_DESTROY: 
+        TerminateThread(GLB_Setup.Audio.Thread, 0);
         CallbackTeardown(&GLB_Setup);
         PostQuitMessage(0);
         break;
@@ -140,7 +173,7 @@ static void __FatalError(const char *Message)
 static void __InitializeDirectsound(win32_setup *Setup)
 {
     const int HzRate = 44100;
-    const int BufferSize = HzRate*2*2*2;
+    const int BufferSize = HzRate*2*2;
 
     IDirectSound *DirectSound;
     if (FAILED(DirectSoundCreate(NULL, &DirectSound, NULL)))
@@ -180,7 +213,7 @@ static void __InitializeDirectsound(win32_setup *Setup)
     PlaybackBufferDesc.dwSize = sizeof PlaybackBufferDesc;
     PlaybackBufferDesc.dwBufferBytes = BufferSize;
     PlaybackBufferDesc.lpwfxFormat = &Format;
-    PlaybackBufferDesc.dwFlags = DSBCAPS_GLOBALFOCUS;
+    PlaybackBufferDesc.dwFlags = DSBCAPS_GLOBALFOCUS|DSBCAPS_CTRLPOSITIONNOTIFY|DSBCAPS_GETCURRENTPOSITION2;
 
     IDirectSoundBuffer *PlaybackBuffer;
     if (FAILED(DirectSound->lpVtbl->CreateSoundBuffer(DirectSound, &PlaybackBufferDesc, &PlaybackBuffer, NULL)))
@@ -188,9 +221,21 @@ static void __InitializeDirectsound(win32_setup *Setup)
         __FatalError("CreateSoundBuffer failed");
     }
 
-    Setup->SecondaryBuffer = PlaybackBuffer;
-    Setup->BytesPerSample = 2 * Format.nChannels;
-    Setup->BufferSize = BufferSize;
+    IDirectSoundNotify *Notify;
+    if (FAILED(PlaybackBuffer->lpVtbl->QueryInterface(PlaybackBuffer, &IID_IDirectSoundNotify, (void**)&Notify)))
+    {
+        __FatalError("QueryInterface failed");
+    }
+
+    Setup->Audio.SecondaryBuffer = PlaybackBuffer;
+    Setup->Audio.BytesPerSample = 2 * Format.nChannels;
+    Setup->Audio.BufferSize_Samples = BufferSize / Setup->Audio.BytesPerSample;
+    Setup->Audio.Ahead_Samples = HzRate/10;
+    Setup->Audio.Index_Samples = 0;
+    __FillBuffer(Setup, Setup->Audio.Ahead_Samples*10);
+
+    Setup->Audio.Thread = CreateThread(NULL, 0, __AudioThread, Setup, 0, NULL);
+    Setup->Audio.SecondaryBuffer->lpVtbl->Play(Setup->Audio.SecondaryBuffer, 0, 0, DSBPLAY_LOOPING);
 }
 
 int WinMainCRTStartup()
@@ -217,11 +262,11 @@ int WinMainCRTStartup()
         NULL                      
     );
 
-    SetTimer(Window, __FrameTimer, 16, NULL);
+    GLB_Setup.FrameTimer = 1;
+    SetTimer(Window, GLB_Setup.FrameTimer, 16, NULL);
 
     GLB_Setup.Window = Window;
     __InitializeDirectsound(&GLB_Setup);
-    GLB_Setup.SecondaryBuffer->lpVtbl->Play(GLB_Setup.SecondaryBuffer, 0, 0, DSBPLAY_LOOPING);
 
     static MSG Msg = { 0 };
     while (GetMessageA(&Msg, NULL, 0, 0))
