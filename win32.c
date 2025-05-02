@@ -76,7 +76,7 @@ static void __AdvanceCursor(win32_audio *Audio)
 static void __FillBuffer(win32_setup *Setup, DWORD SamplesToWrite)
 {
     win32_audio *Audio = &Setup->Audio;
-    
+
     DWORD Cursor_Bytes = Audio->Index_Samples * Audio->BytesPerSample;
     DWORD Write_Bytes = SamplesToWrite * Audio->BytesPerSample;
 
@@ -104,7 +104,7 @@ static DWORD WINAPI __AudioThread(LPVOID Param)
 {
     win32_setup *Setup = (win32_setup*)Param;
     win32_audio *Audio = &Setup->Audio;
-    
+
     while (1)
     {
         DWORD _PlayCursor, _WriteCursor;
@@ -128,7 +128,7 @@ static DWORD WINAPI __AudioThread(LPVOID Param)
 
         Sleep(5);
     }
-    
+
     return 0;
 }
 
@@ -154,7 +154,7 @@ static LRESULT CALLBACK __WndProc(
     case WM_CLOSE:
         DestroyWindow(hWnd);
         break;
-    case WM_DESTROY: 
+    case WM_DESTROY:
         TerminateThread(GLB_Setup.Audio.Thread, 0);
         CallbackTeardown(&GLB_Setup);
         PostQuitMessage(0);
@@ -251,15 +251,15 @@ int WinMainCRTStartup()
 
     // NOTE(ske): No error handling, but not really necessary.
     HWND Window = CreateWindowA(
-        WindowClass.lpszClassName,    
+        WindowClass.lpszClassName,
         SetupInfo.Title,
-        WS_OVERLAPPEDWINDOW | WS_VISIBLE,          
+        WS_OVERLAPPEDWINDOW | WS_VISIBLE,
         CW_USEDEFAULT, CW_USEDEFAULT,
         SetupInfo.Width, SetupInfo.Height,
-        NULL,                        
-        NULL,                       
-        NULL,                      
-        NULL                      
+        NULL,
+        NULL,
+        NULL,
+        NULL
     );
 
     GLB_Setup.FrameTimer = 1;
@@ -271,8 +271,8 @@ int WinMainCRTStartup()
     static MSG Msg = { 0 };
     while (GetMessageA(&Msg, NULL, 0, 0))
     {
-        TranslateMessage(&Msg); 
-        DispatchMessage(&Msg); 
+        TranslateMessage(&Msg);
+        DispatchMessage(&Msg);
     }
 
     ExitProcess(0);

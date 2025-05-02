@@ -15,7 +15,7 @@ win32_setup_info CallbackSetup()
     Setup.Title = "Unnamed";
     Setup.Width = 800;
     Setup.Height = 600;
-    
+
     GameState.P = 100;
 
     return Setup;
