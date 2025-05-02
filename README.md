@@ -2,7 +2,7 @@
 
 Sets up a basic Win32 application, with a framebuffer and audio.
 
-Poke around in main.c to get started. The demo in the repository takes up `1419 bytes` of space.
+Poke around in main.c to get started. The demo in the repository takes up `1657 bytes` of space.
 
 ![Demo screenshot](https://ske.land/r/boxesese.3ay.png)
 
