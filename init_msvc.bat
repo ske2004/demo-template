@@ -9,13 +9,26 @@ SET "PATH=%PATH%;bin\crinkler23\Win32"
 
 
 :MAIN
-SET VCVARS2022="C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars32.bat"
-SET VCVARS2019="C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvars32.bat"
-SET VCVARS2017="C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvars32.bat"
+SET VCVARS2022C="C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars32.bat"
+SET VCVARS2022P="C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Auxiliary\Build\vcvars32.bat"
+SET VCVARS2022E="C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars32.bat"
+SET VCVARS2019C="C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvars32.bat"
+SET VCVARS2019P="C:\Program Files (x86)\Microsoft Visual Studio\2019\Professional\VC\Auxiliary\Build\vcvars32.bat"
+SET VCVARS2019E="C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars32.bat"
+SET VCVARS2017C="C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvars32.bat"
+SET VCVARS2017P="C:\Program Files (x86)\Microsoft Visual Studio\2017\Professional\VC\Auxiliary\Build\vcvars32.bat"
+SET VCVARS2017E="C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\VC\Auxiliary\Build\vcvars32.bat"
 REM Pick MSVC version
-IF EXIST %VCVARS2022% GOTO :INIT_VC_VARS32_2022
-IF EXIST %VCVARS2019% GOTO :INIT_VC_VARS32_2019
-IF EXIST %VCVARS2017% GOTO :INIT_VC_VARS32_2017
+IF EXIST %VCVARS2022C% CALL :SET_VC_VARS32 2022 %VCVARS2022C%
+IF EXIST %VCVARS2022P% CALL :SET_VC_VARS32 2022 %VCVARS2022P%
+IF EXIST %VCVARS2022E% CALL :SET_VC_VARS32 2022 %VCVARS2022E%
+IF EXIST %VCVARS2019C% CALL :SET_VC_VARS32 2019 %VCVARS2019C%
+IF EXIST %VCVARS2019P% CALL :SET_VC_VARS32 2019 %VCVARS2019P%
+IF EXIST %VCVARS2019E% CALL :SET_VC_VARS32 2019 %VCVARS2019E%
+IF EXIST %VCVARS2017C% CALL :SET_VC_VARS32 2017 %VCVARS2017C%
+IF EXIST %VCVARS2017P% CALL :SET_VC_VARS32 2017 %VCVARS2017P%
+IF EXIST %VCVARS2017E% CALL :SET_VC_VARS32 2017 %VCVARS2017E%
+IF EXIST %VCVARSPATH%  GOTO :INIT_VC_VARS32
 ECHO No MSVC found
 EXIT /B 1
 
@@ -41,19 +54,14 @@ ECHO Tar not found, download Crinkler manually and add it to PATH.
 EXIT /B 1
 
 
-:INIT_VC_VARS32_2017
-ECHO Using MSVC 2017
-CALL %VCVARS2017%
-GOTO :END_VC_VARS32
+:SET_VC_VARS32
+SET VCVARSVERSION=%1
+SET VCVARSPATH=%2
+GOTO :EOF
 
-:INIT_VC_VARS32_2019
-ECHO Using MSVC 2019
-CALL %VCVARS2019%
-GOTO :END_VC_VARS32
-
-:INIT_VC_VARS32_2022
-ECHO Using MSVC 2022
-CALL %VCVARS2022%
+:INIT_VC_VARS32
+ECHO Using MSVC %VCVARSVERSION%
+CALL %VCVARSPATH%
 GOTO :END_VC_VARS32
 
 :END_VC_VARS32

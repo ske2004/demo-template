@@ -20,7 +20,7 @@ jobs:
       
     - name: Build
       run: |
-        .\init_msvc.bat && .\build.bat
+        cmd.exe /c ".\init_msvc.bat && .\build.bat"
       
     - name: Upload artifact
       uses: actions/upload-artifact@v4
