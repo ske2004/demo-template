@@ -12,9 +12,9 @@ You need to have:
  - [msvc](https://visualstudio.microsoft.com/visual-cpp-build-tools/)
  - [crinkler](https://github.com/runestubbe/Crinkler)
 
-Run `build.bat` in Visual Studio Developer Command Prompt for ***32 BIT***.
+Set up the environment by running `init_msvc.bat`, and then run `build.bat` :)
 
-Yes, it means you can't use 64-bit, but if you're aiming for a small demo 64 bit isn't a very good choice anyway.
+The project is limited to 32 bits.
 
 > [!WARNING]
 > There is no C standard library, so you can't use `printf` or `malloc` or anything like that. 

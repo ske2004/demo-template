@@ -1,17 +1,26 @@
 @echo off
 
-set CRINKLER_EXE=C:\crinkler\crinkler23\Win32\crinkler.exe
-if not exist %CRINKLER_EXE% (
-    set CRINKLER_EXE=crinkler.exe
-)
+WHERE cl >NUL 2>&1
+IF %ERRORLEVEL% NEQ 0 GOTO :NO_MSVC
 
-if not exist bin mkdir bin
+WHERE crinkler >NUL 2>&1
+IF %ERRORLEVEL% NEQ 0 GOTO :NO_CRINKLER
 
-echo ^>Bob the builder, can we build it?
+GOTO :MAIN
 
-cl main.c /O1 /c /GS- || exit /b
-%CRINKLER_EXE% main.obj user32.lib kernel32.lib gdi32.lib dsound.lib dxguid.lib /SUBSYSTEM:WINDOWS /NODEFAULTLIB /out:bin\demo.exe || exit /b
+:NO_MSVC
+ECHO Run init_msvc.bat first!
+EXIT /B 1
 
-del *.obj
+:NO_CRINKLER
+ECHO No crinkler, run init_msvc.bat, or download it from https://github.com/runestubbe/Crinkler/releases and add it to PATH.
+EXIT /B 1
 
-echo ^>Bob the builder, yes we can! (Tutututu)
+:MAIN
+IF NOT EXIST bin MKDIR bin
+ECHO ^>Bob the builder, can we build it?
+cl main.c /O2 /c /GS- || EXIT /B
+crinkler main.obj user32.lib kernel32.lib gdi32.lib dsound.lib dxguid.lib /SUBSYSTEM:WINDOWS /NODEFAULTLIB /out:bin\demo.exe || EXIT /B
+DEL *.obj
+ECHO ^>Bob the builder, yes we can! (Tutututu)
+GOTO :EOF
